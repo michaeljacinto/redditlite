@@ -47,7 +47,7 @@ export class UserResolver {
     @Mutation(() => UserResponse)
     async register(
         @Arg('options') options: UsernamePasswordInput, // <-- explicity says GraphQL type
-        @Ctx() { em }: MyContext
+        @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
         if (options.username.length <= 2) {
             return {
@@ -82,6 +82,10 @@ export class UserResolver {
                 };
             }
         }
+
+        // store user id session. stores cookie on the user
+
+        req.session.userId = user._id;
         return { user }; // <-- return user object instead of return user
     }
 
@@ -115,7 +119,7 @@ export class UserResolver {
 
         req.session.userId = user._id;
         console.log(req.session);
-        console.log(req.session!.userId);
+        console.log(req.session.userId);
 
         return {
             user,

@@ -16,8 +16,6 @@ import connectRedis from 'connect-redis';
 const main = async () => {
     const orm = await MikroORM.init(microConfig);
     await orm.getMigrator().up();
-    // const post = orm.em.create(Post, { title: 'my first post' });
-    // await orm.em.persistAndFlush(post);
     const app = express();
 
     const RedisStore = connectRedis(session)
@@ -32,15 +30,26 @@ const main = async () => {
             }),
             saveUninitialized: false,
             cookie: {
-                maxAge: 1000 * 60 * 60 * 24 * 365 * 5,
+                maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
                 httpOnly: true,
-                secure: __prod__, // cookie only works in https
+                secure: true, // cookie only works in https
                 sameSite: 'lax', // cstf
             },
             secret: 'qwe290ewmq',
             resave: false,
         })
     )
+
+    // var num = 0;
+    // client.on('error', console.error)
+    app.use(function (req, res, next) {
+        if (!req.session) {
+            return next(new Error('oh no')) // handle error
+        }
+        // console.log(num);
+        // num++;
+        next() // otherwise continue
+    })
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
