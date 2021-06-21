@@ -8,7 +8,7 @@ import { useMutation } from 'urql';
 interface registerProps {
 }
 
-const REGISTER_MUTATION = `mutation Register{username:String!, password:String!) {
+const REGISTER_MUTATION = `mutation Register($username:String!, $password:String!) {
     register(options: {username: $username, password: $password}) {
       errors {
         field
@@ -27,7 +27,8 @@ const Register: React.FC<registerProps> = ({ }) => {
         <Wrapper variant="small">
             <Formik initialValues={{ username: "", password: "" }}
                 onSubmit={(values) => {
-                    console.log('test1');
+                    // register('test1');
+                    console.log(values);
                     register(values);
                 }}>
                 {({ isSubmitting }) => (
