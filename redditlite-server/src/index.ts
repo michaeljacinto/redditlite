@@ -26,7 +26,7 @@ const main = async () => {
         cors({
             origin: "http://localhost:3000",
             credentials: true,
-        }))
+        }));
 
     app.use(
         session({
@@ -47,15 +47,12 @@ const main = async () => {
         })
     )
 
-    // var num = 0;
-    // client.on('error', console.error)
     app.use(function (req, res, next) {
         if (!req.session) {
             return next(new Error('oh no')) // handle error
         }
-        // console.log(num);
-        // num++;
-        next() // otherwise continue
+
+        next()
     })
 
     const apolloServer = new ApolloServer({
