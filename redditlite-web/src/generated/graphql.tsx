@@ -24,6 +24,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   register: UserResponse;
   login: UserResponse;
+  logout: Scalars['Boolean'];
   createPost: Post;
   updatePost?: Maybe<Post>;
   deletePost: Scalars['Boolean'];
@@ -95,6 +96,11 @@ export type UsernamePasswordInput = {
   password: Scalars['String'];
 };
 
+export type BaseUserFragment = (
+  { __typename?: 'User' }
+  & Pick<User, '_id' | 'username'>
+);
+
 export type LoginMutationVariables = Exact<{
   username: Scalars['String'];
   password: Scalars['String'];
@@ -110,9 +116,17 @@ export type LoginMutation = (
       & Pick<FieldError, 'field' | 'message'>
     )>>, user?: Maybe<(
       { __typename?: 'User' }
-      & Pick<User, '_id' | 'username'>
+      & BaseUserFragment
     )> }
   ) }
+);
+
+export type LogoutMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type LogoutMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'logout'>
 );
 
 export type RegisterMutationVariables = Exact<{
@@ -130,7 +144,7 @@ export type RegisterMutation = (
       & Pick<FieldError, 'field' | 'message'>
     )>>, user?: Maybe<(
       { __typename?: 'User' }
-      & Pick<User, '_id' | 'username'>
+      & BaseUserFragment
     )> }
   ) }
 );
@@ -142,11 +156,16 @@ export type MeQuery = (
   { __typename?: 'Query' }
   & { me?: Maybe<(
     { __typename?: 'User' }
-    & Pick<User, '_id' | 'username'>
+    & BaseUserFragment
   )> }
 );
 
-
+export const BaseUserFragmentDoc = gql`
+    fragment BaseUser on User {
+  _id
+  username
+}
+    `;
 export const LoginDocument = gql`
     mutation Login($username: String!, $password: String!) {
   login(options: {username: $username, password: $password}) {
@@ -155,15 +174,23 @@ export const LoginDocument = gql`
       message
     }
     user {
-      _id
-      username
+      ...BaseUser
     }
   }
 }
-    `;
+    ${BaseUserFragmentDoc}`;
 
 export function useLoginMutation() {
   return Urql.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument);
+};
+export const LogoutDocument = gql`
+    mutation Logout {
+  logout
+}
+    `;
+
+export function useLogoutMutation() {
+  return Urql.useMutation<LogoutMutation, LogoutMutationVariables>(LogoutDocument);
 };
 export const RegisterDocument = gql`
     mutation Register($username: String!, $password: String!) {
@@ -173,12 +200,11 @@ export const RegisterDocument = gql`
       message
     }
     user {
-      _id
-      username
+      ...BaseUser
     }
   }
 }
-    `;
+    ${BaseUserFragmentDoc}`;
 
 export function useRegisterMutation() {
   return Urql.useMutation<RegisterMutation, RegisterMutationVariables>(RegisterDocument);
@@ -186,11 +212,10 @@ export function useRegisterMutation() {
 export const MeDocument = gql`
     query Me {
   me {
-    _id
-    username
+    ...BaseUser
   }
 }
-    `;
+    ${BaseUserFragmentDoc}`;
 
 export function useMeQuery(options: Omit<Urql.UseQueryArgs<MeQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<MeQuery>({ query: MeDocument, ...options });
