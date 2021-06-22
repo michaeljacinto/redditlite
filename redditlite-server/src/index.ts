@@ -38,8 +38,8 @@ const main = async () => {
             saveUninitialized: false,
             cookie: {
                 maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
-                httpOnly: true,
-                secure: true, // cookie only works in https
+                httpOnly: false,
+                secure: false, // cookie only works in https
                 sameSite: 'lax', // cstf
             },
             secret: 'qwe290ewmq',

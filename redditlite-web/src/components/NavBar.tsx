@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Flex, Link } from '@chakra-ui/react';
+import { Box, Button, Flex, Link } from '@chakra-ui/react';
 import NextLink from "next/link";
 import { useMeQuery } from '../generated/graphql';
 
@@ -31,10 +31,16 @@ export const NavBar: React.FC<NavBarProps> = ({ }) => {
     else {
         body = (
             <Box>
-                {data.me.username};
+                <Box>
+                    {data.me.username}
+                    <Button padding={1} mr={2} variant='link'>Logout</Button>
+                </Box>
             </Box>
         )
     }
+
+    console.log("cookie being stored?");
+    console.log(data?.me);
 
     return (
         <Flex p={4} bg="tomato">
