@@ -28,11 +28,11 @@ export const validateRegister = (options: UsernamePasswordInput) => {
         ]
     }
 
-    if (options.password.length <= 3) {
+    if (options.password.length <= 2) {
         return [
             {
                 field: 'password',
-                message: 'Password length must be greater than 3.'
+                message: 'Password length must be greater than 2.'
             }
         ]
     }
