@@ -1,5 +1,5 @@
 import { validateRegister } from './../utils/validateRegister';
-import { COOKIE_NAME } from './../constants';
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from './../constants';
 import { MyContext } from 'src/types';
 import { Mutation, Arg, Resolver, Field, Ctx, ObjectType, Query } from "type-graphql";
 import { User } from './../entities/User';
@@ -7,6 +7,8 @@ import "reflect-metadata";
 import argon2 from 'argon2';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { UsernamePasswordInput } from './UsernamePasswordInput';
+import { sendEmail } from './../utils/sendEmail';
+import { v4 } from 'uuid';
 
 @ObjectType() // <-- return values
 class FieldError {
@@ -26,13 +28,30 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-
     @Mutation(() => Boolean)
     async forgotPassword(
         @Arg('email') email: string,
-        @Ctx() { req }: MyContext
+        @Ctx() { redis, em }: MyContext
     ) {
-        // const user = await em.findOne(User, {email})
+        const user = await em.findOne(User, { email })
+        console.log(user);
+        if (!user) {
+            // the email is not in the db
+            console.log(user);
+            console.log('here1');
+            return true;
+        }
+
+        const token = v4();
+
+        await redis.set(FORGET_PASSWORD_PREFIX + token,
+            user._id,
+            'ex',
+            1000 * 60 * 60 * 24 * 3
+        );
+
+        console.log('here');
+        await sendEmail(email, `'<a href="http://localhost:3000/change-password/${token}">Reset password</a>'`)
         return true;
     }
 
@@ -130,8 +149,6 @@ export class UserResolver {
         }
 
         req.session.userId = user._id;
-        console.log(req.session);
-        console.log(req.session.userId);
 
         return {
             user,
