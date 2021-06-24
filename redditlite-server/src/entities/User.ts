@@ -20,6 +20,10 @@ export class User {
     @Property({ type: 'text', unique: true })
     username!: string;
 
+    @Field() // <-- exposes
+    @Property({ type: 'text', unique: true })
+    email!: string;
+
     // <-- no Field decorator. does not expose.
     @Property({ type: 'text' })
     password!: string;

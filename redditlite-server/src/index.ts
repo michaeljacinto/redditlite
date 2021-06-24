@@ -13,10 +13,16 @@ import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import cors from 'cors';
+import { User } from './entities/User';
+// import { sendEmail } from './utils/sendEmail';
 
 const main = async () => {
+    // sendEmail("michaeljacinto8@gmail.com", "Testing123")
     const orm = await MikroORM.init(microConfig);
+    // await orm.em.nativeDelete(User, {})
+    await orm.em.nativeDelete(User, {})
     await orm.getMigrator().up();
+
     const app = express();
 
     const RedisStore = connectRedis(session)
