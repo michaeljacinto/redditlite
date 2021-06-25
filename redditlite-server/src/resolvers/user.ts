@@ -104,7 +104,7 @@ export class UserResolver {
         );
 
         console.log('here');
-        await sendEmail(email, `'<a href="http://localhost:3000/change-password/${token}">Reset password</a>'`)
+        await sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">Reset password</a>`)
         return true;
     }
 
