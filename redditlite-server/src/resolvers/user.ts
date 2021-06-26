@@ -5,10 +5,10 @@ import { Mutation, Arg, Resolver, Field, Ctx, ObjectType, Query } from "type-gra
 import { User } from './../entities/User';
 import "reflect-metadata";
 import argon2 from 'argon2';
-import { EntityManager } from '@mikro-orm/postgresql';
 import { UsernamePasswordInput } from './UsernamePasswordInput';
 import { sendEmail } from './../utils/sendEmail';
 import { v4 } from 'uuid';
+import { getConnection } from 'typeorm';
 
 @ObjectType() // <-- return values
 class FieldError {
@@ -32,7 +32,7 @@ export class UserResolver {
     async changePassword(
         @Arg('token') token: string,
         @Arg('newPassword') newPassword: string,
-        @Ctx() { redis, em, req }: MyContext
+        @Ctx() { redis, req }: MyContext
     ): Promise<UserResponse> {
 
         if (newPassword.length <= 2) {
@@ -58,7 +58,8 @@ export class UserResolver {
             };
         }
 
-        const user = await em.findOne(User, { _id: parseInt(userId) });
+        const userIdNum = parseInt(userId);
+        const user = await User.findOne(userIdNum);
 
         if (!user) {
             return {
@@ -72,8 +73,16 @@ export class UserResolver {
         }
 
         user.password = await argon2.hash(newPassword);
-        await em.persistAndFlush(user);
+        await User.update(
+            {
+                _id: userIdNum
+            },
+            {
+                password: await argon2.hash(newPassword)
+            }
+        )
         await redis.del(key);
+
         // Auto login after changing new password
         req.session.userId = user._id;
 
@@ -84,14 +93,11 @@ export class UserResolver {
     @Mutation(() => Boolean)
     async forgotPassword(
         @Arg('email') email: string,
-        @Ctx() { redis, em }: MyContext
+        @Ctx() { redis }: MyContext
     ) {
-        const user = await em.findOne(User, { email })
+        const user = await User.findOne({ where: { email } })
         console.log(user);
         if (!user) {
-            // the email is not in the db
-            console.log(user);
-            console.log('here1');
             return true;
         }
 
@@ -109,22 +115,21 @@ export class UserResolver {
     }
 
     @Query(() => User, { nullable: true })
-    async me(
-        @Ctx() { req, em }: MyContext
+    me(
+        @Ctx() { req }: MyContext
     ) {
         // not logged in
         if (!req.session.userId) {
             return null;
         }
 
-        const user = await em.findOne(User, { _id: req.session.userId });
-        return user;
+        return User.findOne(req.session.userId);
     }
 
     @Mutation(() => UserResponse)
     async register(
         @Arg('options') options: UsernamePasswordInput, // <-- explicity says GraphQL type
-        @Ctx() { em, req }: MyContext
+        @Ctx() { req }: MyContext
     ): Promise<UserResponse> {
 
         const errors = validateRegister(options);
@@ -137,20 +142,38 @@ export class UserResolver {
         // const user = em.create(User, { username: options.username, password: hashedPassword });
         let user;
         try {
-            const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert(
-                {
+            const result = await getConnection()
+                .createQueryBuilder()
+                .insert()
+                .into(User)
+                .values({
                     username: options.username,
                     password: hashedPassword,
                     email: options.email,
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                }
-            ).returning("*");
-            // await em.persistAndFlush(user);
-            user = result[0];
+                })
+                .returning('*')
+                .execute();
+
+            console.log(result);
+            // const result = await (em as EntityManager)
+            // .createQueryBuilder(User)
+            // .getKnexQuery()
+            // .insert(
+            //     {
+            //         username: options.username,
+            //         password: hashedPassword,
+            //         email: options.email,
+            //         created_at: new Date(),
+            //         updated_at: new Date(),
+            //     }
+            // ).returning("*");
+            // // await em.persistAndFlush(user);
+            // user = result[0];
+            user = result.raw;
         } catch (err) {
             if (err.code === '23505') {
                 // duplicate username error
+                console.log('err');
                 return {
                     errors: [
                         {
@@ -172,12 +195,12 @@ export class UserResolver {
     async login(
         @Arg('usernameOrEmail') usernameOrEmail: string,
         @Arg('password') password: string, // <-- explicity says GraphQL type
-        @Ctx() { em, req }: MyContext
+        @Ctx() { req }: MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(User,
+        const user = await User.findOne(
             usernameOrEmail.includes('@') ?
-                { email: usernameOrEmail }
-                : { username: usernameOrEmail }
+                { where: { email: usernameOrEmail } }
+                : { where: { username: usernameOrEmail } }
         )
         if (!user) {
             return {
