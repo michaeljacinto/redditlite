@@ -1,6 +1,17 @@
+import { isAuth as checkAuth } from '../middleware/isAuth';
+import { MyContext } from './../types';
 import { Post } from './../entities/Post';
-import { Arg, Int, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Int, Mutation, Query, Resolver, UseMiddleware } from "type-graphql";
 import "reflect-metadata";
+
+@InputType()
+class PostInput {
+    @Field()
+    title: string
+    @Field()
+    text: string
+}
+
 @Resolver()
 export class PostResolver {
     @Query(() => [Post]) // <-- graphQL type
@@ -15,10 +26,15 @@ export class PostResolver {
     }
 
     @Mutation(() => Post) // <-- graphQL type
+    @UseMiddleware(checkAuth)
     async createPost(
-        @Arg('title') title: string): Promise<Post> { // <-- .ts type
-        // 2 sql queries
-        return Post.create({ title }).save();
+        @Arg('input') input: PostInput,
+        @Ctx() { req }: MyContext
+    ): Promise<Post> { // <-- .ts type
+        return Post.create({
+            ...input,
+            creatorId: req.session.userId
+        }).save();
     }
 
     @Mutation(() => Post, { nullable: true }) // <-- graphQL type
@@ -46,3 +62,7 @@ export class PostResolver {
         return true;
     }
 }
+function isAuth(isAuth: any) {
+    throw new Error('Function not implemented.');
+}
+

@@ -26,8 +26,9 @@ const main = async () => {
         entities: [Post, User],
     });
 
-    console.log(conn);
-    // await orm.getMigrator().up();
+    console.log(conn.migrations);
+
+    // await Post.delete({})
 
     const app = express();
 
